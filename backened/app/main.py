@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from app.routes import alerts
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes import cases, suspects
@@ -32,4 +33,9 @@ app.include_router(
     suspects.router,
     prefix="/suspects",
     tags=["Suspects"]
+)
+app.include_router(
+    alerts.router,
+    prefix="/alerts",
+    tags=["Alerts"]
 )
