@@ -1,46 +1,105 @@
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { getCases } from "../services/caseService";
 
-export default function Cases(){
+export default function Cases() {
+  const [cases, setCases] = useState([]);
 
-const [cases,setCases]=useState([]);
+  useEffect(() => {
+    async function loadCases() {
+      const data = await getCases();
+      setCases(data);
+    }
 
-useEffect(()=>{
+    loadCases();
+  }, []);
 
-async function loadCases(){
+  return (
+    <div className="space-y-8">
+      
+      <div>
+        <p className="text-cyan-400 text-sm tracking-[0.3em] uppercase">
+          Intelligence Network
+        </p>
 
-const data=await getCases();
+        <h1 className="text-5xl font-bold mt-2">
+          Active Investigations
+        </h1>
 
-setCases(data);
+        <p className="text-zinc-400 mt-3">
+          Connected criminal activity monitored by CCIF
+        </p>
+      </div>
 
-}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-loadCases();
+        {cases.map((item, index) => (
 
-},[])
+          <motion.div
+            key={item.id}
+            initial={{ opacity:0,y:30 }}
+            animate={{ opacity:1,y:0 }}
+            transition={{
+              delay:index*0.1
+            }}
+            whileHover={{
+              scale:1.02
+            }}
+            className="
+            relative
+            overflow-hidden
+            rounded-3xl
+            border
+            border-cyan-500/20
+            bg-white/5
+            backdrop-blur-xl
+            p-6
+            shadow-[0_0_40px_rgba(0,255,255,0.08)]
+            "
+          >
 
-return(
+            <div className="absolute top-0 right-0 h-40 w-40 bg-cyan-500/10 blur-3xl"/>
 
-<div>
+            <div className="flex justify-between">
 
-<h1>Cases</h1>
+              <div>
 
-{cases.map(item=>(
+                <p className="text-zinc-500 text-xs">
+                  {item.id}
+                </p>
 
-<div key={item.id}>
+                <h2 className="text-2xl font-semibold mt-2">
+                  {item.title}
+                </h2>
 
-<h2>{item.title}</h2>
+                <p className="text-zinc-400 mt-3">
+                  📍 {item.location}
+                </p>
 
-<p>{item.location}</p>
+              </div>
 
-<p>{item.status}</p>
+              <div>
 
-</div>
+                <div className="
+                px-4
+                py-2
+                rounded-full
+                bg-cyan-500/10
+                text-cyan-400
+                text-sm
+                ">
+                  {item.status}
+                </div>
 
-))}
+              </div>
 
-</div>
+            </div>
 
-)
+          </motion.div>
 
+        ))}
+
+      </div>
+    </div>
+  )
 }
