@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Crosshair, LocateFixed, Maximize2, Minus, Plus, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { cases, evidence, graphData, suspects } from '../data/mockData.js'
+import { graphService } from '../services/graphService.js'
 
 const nodeTypes = ['suspect', 'case', 'evidence', 'location', 'gang']
 const relationships = ['INVOLVED_IN', 'HAS_EVIDENCE', 'ASSOCIATED_WITH', 'AFFILIATED_WITH', 'LOCATED_AT']
@@ -22,10 +23,20 @@ export default function IntelligenceGraph() {
   const [enabledRelationships, setEnabledRelationships] = useState(relationships)
   const [search, setSearch] = useState('')
   const [time, setTime] = useState(78)
-  const elements = useMemo(() => [...graphData.nodes, ...graphData.edges], [])
+  const [network, setNetwork] = useState(null)
+  const elements = useMemo(() => network ? [...network.nodes, ...network.edges] : [], [network])
 
   useEffect(() => {
-    if (!containerRef.current || cyRef.current) return
+    async function loadGraph() {
+      const data = await graphService.getGraph()
+      setNetwork(data)
+    }
+
+    loadGraph()
+  }, [])
+
+  useEffect(() => {
+    if (!containerRef.current || cyRef.current || !elements.length) return
     cyRef.current = cytoscape({
       container: containerRef.current,
       elements,
@@ -114,7 +125,7 @@ export default function IntelligenceGraph() {
       edge.style('display', relationshipVisible && nodesVisible ? 'element' : 'none')
       edge.style('opacity', Math.max(0.18, time / 100))
     })
-  }, [enabledRelationships, enabledTypes, time])
+  }, [elements, enabledRelationships, enabledTypes, time])
 
   const focusNode = (node) => {
     const data = node.data()

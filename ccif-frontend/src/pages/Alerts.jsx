@@ -75,11 +75,11 @@ p-6
 <div>
 
 <h2 className="text-xl">
-{alert.type}
+{alert.title}
 </h2>
 
 <p className="text-zinc-400 mt-2">
-{alert.message}
+{alert.location} / {alert.time}
 </p>
 
 </div>

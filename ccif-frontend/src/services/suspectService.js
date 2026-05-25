@@ -1,4 +1,5 @@
 import api from "./api";
+import { suspects as fallbackSuspects } from "../data/mockData.js";
 
 export async function getSuspects() {
 
@@ -12,7 +13,7 @@ export async function getSuspects() {
 
    console.log(error);
 
-   return [];
+   return fallbackSuspects;
 
  }
 
