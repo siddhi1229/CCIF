@@ -1,17 +1,14 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Bell,
-  Bot,
   BrainCircuit,
   BriefcaseBusiness,
-  FileSearch,
   Gauge,
   Landmark,
   Mic,
   Network,
   Search,
   ShieldAlert,
-  UsersRound,
   UserRoundSearch
 } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
@@ -21,12 +18,9 @@ const navItems = [
   { label: 'Dashboard', to: '/dashboard', icon: Gauge },
   { label: 'Investigations', to: '/cases', icon: BriefcaseBusiness },
   { label: 'Suspects', to: '/suspects', icon: UserRoundSearch },
-  { label: 'Evidence', to: '/evidence', icon: FileSearch },
   { label: 'Graph', to: '/graph', icon: Network },
-  { label: 'Copilot', to: '/copilot', icon: Bot },
   { label: 'Alerts', to: '/alerts', icon: ShieldAlert },
-  { label: 'Domains', to: '/crime-domains', icon: Landmark },
-  { label: 'Officers', to: '/officers', icon: UsersRound }
+  { label: 'Domains', to: '/crime-domains', icon: Landmark }
 ]
 
 const streamItems = [
@@ -44,18 +38,19 @@ const streamItems = [
 
 export default function Layout() {
   const location = useLocation()
+  const isDashboard = location.pathname === '/dashboard'
 
   return (
     <div className="aurora-shell min-h-screen overflow-hidden">
-      <div className="pointer-events-none fixed inset-0 ambient-grid opacity-70" />
-      <div className="pointer-events-none fixed inset-0 noise-overlay" />
-      <ParticleField />
+      <div className={`pointer-events-none fixed inset-0 ambient-grid ${isDashboard ? 'opacity-25' : 'opacity-70'}`} />
+      {!isDashboard && <div className="pointer-events-none fixed inset-0 noise-overlay" />}
+      {!isDashboard && <ParticleField />}
 
-      <div className="relative z-10 grid min-h-screen grid-cols-1 lg:grid-cols-[5.5rem_minmax(0,1fr)] 2xl:grid-cols-[5.5rem_minmax(0,1fr)_24rem]">
+      <div className={`relative z-10 grid min-h-screen grid-cols-1 lg:grid-cols-[5.5rem_minmax(0,1fr)] ${isDashboard ? '2xl:grid-cols-[5.5rem_minmax(0,1fr)]' : '2xl:grid-cols-[5.5rem_minmax(0,1fr)_24rem]'}`}>
         <IntelligenceRail />
 
         <div className="min-w-0 px-4 pb-8 pt-24 sm:px-6 lg:px-8">
-          <CommandBar />
+          <CommandBar hasRightRail={!isDashboard} />
           <AnimatePresence mode="wait">
             <motion.main
               key={location.pathname}
@@ -69,7 +64,7 @@ export default function Layout() {
           </AnimatePresence>
         </div>
 
-        <LiveStream />
+        {!isDashboard && <LiveStream />}
       </div>
     </div>
   )
@@ -118,10 +113,10 @@ function IntelligenceRail() {
   )
 }
 
-function CommandBar() {
+function CommandBar({ hasRightRail = true }) {
   return (
     <motion.header
-      className="fixed left-4 right-4 top-4 z-30 lg:left-[7rem] 2xl:right-[25rem]"
+      className={`fixed left-4 right-4 top-4 z-30 lg:left-[7rem] ${hasRightRail ? '2xl:right-[25rem]' : '2xl:right-8'}`}
       initial={{ y: -16, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.55, delay: 0.1 }}
@@ -136,7 +131,7 @@ function CommandBar() {
         </div>
         <div className="hidden items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-2 text-xs text-emerald-200 md:flex">
           <span className="h-2 w-2 rounded-full bg-emerald-300 pulse-dot" />
-          AI online
+          System online
         </div>
         <button className="rounded-full border border-white/10 bg-white/[0.04] p-3 text-zinc-300 transition hover:text-cyan-100" aria-label="Notifications">
           <Bell size={17} />

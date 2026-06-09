@@ -13,7 +13,6 @@ import {
   X,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { cases, evidence, suspects } from '../data/mockData.js'
 import { graphService } from '../services/graphService.js'
 
 const nodeTypes = ['suspect', 'case', 'evidence', 'location', 'gang']
@@ -169,10 +168,10 @@ export default function IntelligenceGraph() {
       cyRef.current = null
     }
 
-    cyRef.current = cytoscape({
+    const cy = cytoscape({
       container: containerRef.current,
       elements,
-      minZoom: 0.18,
+      minZoom: 0.08,
       maxZoom: 3,
       style: [
         {
@@ -199,11 +198,11 @@ export default function IntelligenceGraph() {
             color: 'rgba(228,228,231,.64)',
             'font-size': 7,
             width: 1.4,
-            'line-color': 'rgba(34,211,238,.25)',
-            'target-arrow-color': 'rgba(34,211,238,.42)',
+            'line-color': 'rgba(34,211,238,.35)',
+            'target-arrow-color': 'rgba(34,211,238,.55)',
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
-            opacity: 0.75,
+            opacity: 0.85,
           },
         },
         { selector: '.dim', style: { opacity: 0.08 } },
@@ -224,16 +223,38 @@ export default function IntelligenceGraph() {
       layout: {
         name: 'cose',
         animate: true,
-        animationDuration: 1200,
-        idealEdgeLength: 130,
-        nodeRepulsion: 9000,
+        animationDuration: 1400,
+        // Tuned so all node types (evidence, location, gang) stay in viewport
+        idealEdgeLength: (edge) => {
+          const srcType = edge.source().data('type')
+          const tgtType = edge.target().data('type')
+          // Pull evidence closer to its case; spread gangs/locations wider
+          if (srcType === 'evidence' || tgtType === 'evidence') return 80
+          if (srcType === 'gang' || tgtType === 'gang') return 160
+          if (srcType === 'location' || tgtType === 'location') return 150
+          return 120
+        },
+        nodeRepulsion: () => 4500,   // lower repulsion keeps nodes within viewport
+        gravity: 0.25,               // gentle pull toward center so outer nodes don't escape
+        numIter: 1000,
+        initialTemp: 200,
+        coolingFactor: 0.95,
+        minTemp: 1.0,
         nestingFactor: 1.2,
+        randomize: true,
+        componentSpacing: 80,
+        // Fit the entire graph into view once layout settles
+        stop() {
+          cy.fit(undefined, 60)
+        },
       },
     })
 
-    cyRef.current.on('tap', 'node', (event) => focusNode(event.target))
-    cyRef.current.on('tap', (event) => {
-      if (event.target === cyRef.current) clearFocus()
+    cyRef.current = cy
+
+    cy.on('tap', 'node', (event) => focusNode(event.target))
+    cy.on('tap', (event) => {
+      if (event.target === cy) clearFocus()
     })
 
     return () => {
@@ -470,13 +491,9 @@ export default function IntelligenceGraph() {
 
 /* ─── Node Detail Drawer ──────────────────────────────────────────────── */
 function NodeDrawer({ node, onClose }) {
-  const suspect = suspects.find((s) => s.id === node.id)
-  const caseItem = cases.find((c) => c.id === node.id)
-  const evidenceItem = evidence.find((e) => e.id === node.id)
-
-  const title = suspect?.name || caseItem?.title || evidenceItem?.type || node.label
-  const linkedCases = suspect ? cases.filter((c) => suspect.crimes.includes(c.id)) : []
-  const linkedEvidence = caseItem ? evidence.filter((e) => e.caseId === caseItem.id).slice(0, 4) : []
+  // All detail comes directly from the node data the backend/mock provides
+  const title = node.label || node.id
+  const riskScore = node.risk || 72
 
   return (
     <motion.aside
@@ -505,60 +522,86 @@ function NodeDrawer({ node, onClose }) {
           <LocateFixed className="text-cyan-200" />
           <div>
             <p className="text-sm text-zinc-500">Risk score</p>
-            <p className="text-4xl font-semibold text-white">
-              {node.risk || suspect?.risk || caseItem?.trust || evidenceItem?.trust || 72}
-            </p>
+            <p className="text-4xl font-semibold text-white">{riskScore}</p>
           </div>
         </div>
         <div className="mt-4 h-2 rounded-full bg-white/10">
           <div
             className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-violet-300 transition-all duration-700"
-            style={{
-              width: `${node.risk || suspect?.risk || caseItem?.trust || evidenceItem?.trust || 72}%`,
-            }}
+            style={{ width: `${riskScore}%` }}
           />
         </div>
       </div>
 
       <div className="thin-scroll mt-5 max-h-[calc(100%-15rem)] space-y-4 overflow-y-auto pr-1">
-        {suspect && (
-          <>
-            <IntelBlock
-              title="Profile"
-              lines={[`Age ${suspect.age}`, `Gang ${suspect.gang}`, `Location ${suspect.location}`]}
-            />
-            <IntelBlock title="Linked crimes" lines={linkedCases.map((c) => c.title)} />
-            <IntelBlock title="Associates" lines={suspect.associations} />
-          </>
+        {/* Suspect */}
+        {node.type === 'suspect' && (
+          <IntelBlock
+            title="Suspect profile"
+            lines={[
+              node.location && `Location: ${node.location}`,
+              node.gang && node.gang.toLowerCase() !== 'none' && `Gang: ${node.gang}`,
+              node.age && `Age: ${node.age}`,
+            ].filter(Boolean)}
+          />
         )}
-        {caseItem && (
-          <>
-            <IntelBlock
-              title="Case profile"
-              lines={[caseItem.summary, `Officer ${caseItem.officer}`, `Status ${caseItem.status}`]}
-            />
-            <IntelBlock
-              title="Evidence"
-              lines={linkedEvidence.map((e) => `${e.id} ${e.type}`)}
-            />
-          </>
+
+        {/* Case */}
+        {node.type === 'case' && (
+          <IntelBlock
+            title="Case profile"
+            lines={[
+              node.crimeType && `Type: ${node.crimeType}`,
+              node.location && `Location: ${node.location}`,
+              node.officer && `Officer: ${node.officer}`,
+              node.status && `Status: ${node.status}`,
+              node.summary && `Summary: ${node.summary}`,
+            ].filter(Boolean)}
+          />
         )}
-        {evidenceItem && (
+
+        {/* Evidence */}
+        {node.type === 'evidence' && (
           <IntelBlock
             title="Evidence profile"
             lines={[
-              `Case ${evidenceItem.caseId}`,
-              `Uploaded by ${evidenceItem.uploadedBy}`,
-              `Integrity ${evidenceItem.integrity}`,
-            ]}
+              node.caseId && `Case: ${node.caseId}`,
+              node.uploadedBy && `Uploaded by: ${node.uploadedBy}`,
+              node.integrity && `Integrity: ${node.integrity}`,
+              node.summary && `Summary: ${node.summary}`,
+            ].filter(Boolean)}
           />
         )}
-        {!suspect && !caseItem && !evidenceItem && (
+
+        {/* Location */}
+        {node.type === 'location' && (
+          <IntelBlock
+            title="Location profile"
+            lines={[
+              `Activity hotspot in active case network`,
+              node.label && `Area: ${node.label}`,
+            ].filter(Boolean)}
+          />
+        )}
+
+        {/* Gang */}
+        {node.type === 'gang' && (
+          <IntelBlock
+            title="Criminal organisation"
+            lines={[
+              `Known active criminal network`,
+              node.label && `Name: ${node.label}`,
+            ].filter(Boolean)}
+          />
+        )}
+
+        {/* Fallback for unknown types */}
+        {!['suspect','case','evidence','location','gang'].includes(node.type) && (
           <IntelBlock
             title="Entity"
             lines={[
-              `Type ${node.type}`,
-              `Network signal ${node.risk || 76}`,
+              `Type: ${node.type}`,
+              `Network signal: ${riskScore}`,
               'Connected to active investigation fabric',
             ]}
           />
@@ -567,6 +610,7 @@ function NodeDrawer({ node, onClose }) {
     </motion.aside>
   )
 }
+
 
 /* ─── Intel Block ─────────────────────────────────────────────────────── */
 function IntelBlock({ title, lines }) {

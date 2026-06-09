@@ -83,7 +83,7 @@ export const graphData = {
   nodes: [
     ...suspects.map((s) => ({ data: { id: s.id, label: s.name, type: 'suspect', risk: s.risk } })),
     ...cases.map((c) => ({ data: { id: c.id, label: c.title, type: 'case', risk: c.trust } })),
-    ...evidence.slice(0, 24).map((e) => ({ data: { id: e.id, label: e.type, type: 'evidence', risk: e.trust } })),
+    ...evidence.slice(0, 10).map((e) => ({ data: { id: e.id, label: e.type, type: 'evidence', risk: e.trust } })),
     ...Array.from(new Set([...locations.map((l) => l.name), ...cases.map((c) => c.location)])).map((name) => {
       const location = locations.find((item) => item.name === name)
       return { data: { id: `L-${name}`, label: name, type: 'location', risk: location?.severity || 68 } }
@@ -92,7 +92,7 @@ export const graphData = {
   ],
   edges: [
     ...cases.flatMap((c) => c.suspects.map((s) => ({ data: { id: `${s}-${c.id}`, source: s, target: c.id, label: 'INVOLVED_IN' } }))),
-    ...evidence.slice(0, 24).map((e) => ({ data: { id: `${e.caseId}-${e.id}`, source: e.caseId, target: e.id, label: 'HAS_EVIDENCE' } })),
+    ...evidence.slice(0, 10).map((e) => ({ data: { id: `${e.caseId}-${e.id}`, source: e.caseId, target: e.id, label: 'HAS_EVIDENCE' } })),
     ...suspects.flatMap((s) => s.associations.map((a) => ({ data: { id: `${s.id}-${a}`, source: s.id, target: a, label: 'ASSOCIATED_WITH' } }))),
     ...suspects.filter((s) => s.gang !== 'None').map((s) => ({ data: { id: `${s.id}-G-${s.gang}`, source: s.id, target: `G-${s.gang}`, label: 'AFFILIATED_WITH' } })),
     ...cases.map((c) => ({ data: { id: `${c.id}-L-${c.location}`, source: c.id, target: `L-${c.location}`, label: 'LOCATED_AT' } }))

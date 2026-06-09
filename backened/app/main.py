@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import alerts, cases, copilot, crimes, dashboard, evidence, graph, officers, suspects
+from app.routes import alerts, cases, crimes, dashboard, evidence, graph, officers, suspects
 
 ROUTERS = (
     (cases.router, "/cases", ["Cases"]),
@@ -9,7 +9,6 @@ ROUTERS = (
     (evidence.router, "/evidence", ["Evidence"]),
     (dashboard.router, "/dashboard", ["Dashboard"]),
     (graph.router, "/graph", ["Graph"]),
-    (copilot.router, "/copilot", ["Copilot"]),
     (crimes.router, "/crimes", ["Crimes"]),
     (officers.router, "/officers", ["Officers"]),
 )
